@@ -1,6 +1,10 @@
+/*global google*/
+
 import React, { Component } from "react";
 import { reduxForm, Field } from 'redux-form';
 import moment from 'moment';
+import { geocodeByAddress, getLatLng } from 'react-places-autocomplete';
+import Script from "react-load-script";
 import { connect } from "react-redux";
 import { Segment, Form, Button, Grid, Header } from "semantic-ui-react";
 import { createEvent, updateEvent } from '../eventActions';
@@ -10,6 +14,7 @@ import TextArea from "../../../app/common/form/TextArea";
 import SelectInput from '../../../app/common/form/SelectInput';
 import { combineValidators, composeValidators, isRequired, hasLengthGreaterThan } from 'revalidate';
 import DateInput from "../../../app/common/form/DateInput";
+import PlaceInput from '../../../app/common/form/PlaceInput';
 
 const mapState = (state, ownProps) => {
   const eventId = ownProps.match.params.id;
@@ -46,13 +51,48 @@ const validate = combineValidators({
     hasLengthGreaterThan(4)({message: 'Description needs to be at least 5 characters'})
   )(),
   city: isRequired('city'),
-  venue: isRequired('evenue'),
+  venue: isRequired('venue'),
   date: isRequired('date')
 })
 
 class EventForm extends Component {
+state = {
+  cityLatLng: {},
+  venueLatLng: {},
+  scriptLoaded: false
+}
+
+handleScriptLoad = () => this.setState({scriptLoaded: true});
+
+handleCitySelect = (selectedCity) => {
+  geocodeByAddress(selectedCity)
+   .then(results => getLatLng(results[0]))
+   .then(latlng => {
+     this.setState({
+       cityLatLng: latlng
+     });
+     })
+     .then(()=> {
+      this.props.change('city',selectedCity)
+   })
+}
+
+handleVenueSelect = (selectedVenue) => {
+  geocodeByAddress(selectedVenue)
+   .then(results => getLatLng(results[0]))
+   .then(latlng => {
+     this.setState({
+       venueLatLng: latlng
+     });
+     })
+     .then(()=> {
+      this.props.change('venue',selectedVenue)
+   })
+  }
+
   onFormSubmit = values => {
-    values.date=moment(values.date).format();
+    values.date= moment(values.date).format();
+    values.venueLatLng = this.state.venueLatLng;
     if (this.props.initialValues.id) {
       this.props.updateEvent(values);
       this.props.history.goBack();
@@ -73,6 +113,9 @@ class EventForm extends Component {
     return (
 
        <Grid>
+            <Script url='https://maps.googleapis.com/maps/api/js?key=AIzaSyCOhtmnPhy60-MfidwCe7wMCGxRnkf8YWM&libraries=places' 
+        onLoad={this.handleScriptLoad}
+        />
          <Grid.Column width={10}>
          <Segment>
            <Header sub color='teal' content='Event Details' />
@@ -81,8 +124,12 @@ class EventForm extends Component {
           <Field name='category' type='text' component={SelectInput} options={category} placeholder='What is your event about' />
           <Field name='description' type='text' rows={3} component={TextArea} placeholder='Tell us about your event' />
           <Header sub color='teal' content='Event Location Details' />
-          <Field name='city' type='text' component={TextInput} placeholder='Event City' />
-          <Field name='venue' type='text' component={TextInput} placeholder='Event Venue' />
+          <Field name='city' type='text' options={{types: ['(cities)']}} component={PlaceInput}  onSelect={this.handleCitySelect} placeholder='Event City' />
+          {this.state.scriptLoaded && 
+          <Field name='venue' type='text' 
+          options={{location:new google.maps.LatLng(this.state.cityLatLng),radius: 1000,
+          types: ['establishment']}} component={PlaceInput} onSelect={this.handleVenueSelect} placeholder='Event Venue' />
+          }
           <Field name='date' type='text' component={DateInput} 
           dateFormat='YYYY-MM-DD HH:mm' timeFormat='HH:mm' showTimeSelect placeholder='Date and Time of event' />
             <Button disabled={invalid || submitting || pristine} positive type="submit">
