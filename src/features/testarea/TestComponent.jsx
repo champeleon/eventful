@@ -5,20 +5,20 @@ import PlacesAutocomplete, {
   geocodeByAddress,
   getLatLng
 } from "react-places-autocomplete";
-import { incrementCounter, decrementCounter } from "./testActions";
+import { incrementAsync, decrementAsync } from "./testActions";
 import { Button } from "semantic-ui-react";
-import { openModal } from '../modals/modalActions';
+import { openModal } from "../modals/modalActions";
 
 const mapState = state => ({
-  data: state.test.data
+  data: state.test.data,
+  loading: state.test.loading
 });
 
 const actions = {
-  incrementCounter,
-  decrementCounter,
+  incrementAsync,
+  decrementAsync,
   openModal
 };
-
 
 class TestComponent extends Component {
   static defaultProps = {
@@ -35,8 +35,8 @@ class TestComponent extends Component {
   };
 
   handleScriptLoad = () => {
-    this.setState({scriptLoaded : true})
-  }
+    this.setState({ scriptLoaded: true });
+  };
   handleFormSubmit = event => {
     event.preventDefault();
 
@@ -53,23 +53,30 @@ class TestComponent extends Component {
       value: this.state.address,
       onChange: this.onChange
     };
-    const { incrementCounter, decrementCounter, data, openModal} = this.props;
+    const { incrementAsync, decrementAsync, data, openModal,loading } = this.props;
     return (
       <div>
-        <Script url='https://maps.googleapis.com/maps/api/js?key=AIzaSyCOhtmnPhy60-MfidwCe7wMCGxRnkf8YWM&libraries=places' 
-        onLoad={this.handleScriptLoad}
+        <Script
+          url="https://maps.googleapis.com/maps/api/js?key=AIzaSyCOhtmnPhy60-MfidwCe7wMCGxRnkf8YWM&libraries=places"
+          onLoad={this.handleScriptLoad}
         />
         <h1>Test Area</h1>
         <h3>The answer is: {data}</h3>
-        <Button onClick={incrementCounter} color="green" content="Increment" />
-        <Button onClick={decrementCounter} color="red" content="Decrement" />
-        <Button onClick={()=> openModal('TestModal',{data:43})} color="teal" content="Open Modal" />
-        <br /><br />
+        <Button loading={loading} onClick={incrementAsync} color="green" content="Increment" />
+        <Button loading={loading} onClick={decrementAsync} color="red" content="Decrement" />
+        <Button
+          onClick={() => openModal("TestModal", { data: 43 })}
+          color="teal"
+          content="Open Modal"
+        />
+        <br />
+        <br />
         <form onSubmit={this.handleFormSubmit}>
-        {this.state.scriptLoaded && <PlacesAutocomplete inputProps={inputProps} />}
+          {this.state.scriptLoaded && (
+            <PlacesAutocomplete inputProps={inputProps} />
+          )}
           <button type="submit">Submit</button>
         </form>
-
       </div>
     );
   }
